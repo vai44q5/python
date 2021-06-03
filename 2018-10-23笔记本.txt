@@ -1,0 +1,129 @@
+新建项目，要重新激活虚拟环境，在创建day02文件夹
+要重新配置右上角的三角形旁边的configurations和file中的settings
+重新配置__init__py和settings.py（主要是databases这项）
+可能要重新在terminal中重新安装pip install pymysql和pip install django==1.11
+
+
+
+
+一、创建app文件夹
+terminal输入python manage.py startapp app，后面的app只是文件夹名字
+在day02下的urls.py中输入;
+	from app import views
+	urlpatterns = [
+	    url(r'^admin/', admin.site.urls),
+	    url(r'^hello/',views.hello),
+	    # http://127.0.0.1:8080/create_stu/
+	    url(r'^create_stu/',views.create_stu),  # 调用views下的create_stu函数
+	    url(r'^sel_stu/',views.sel_stu),
+在app下的views.py中输入：
+	from django.http import HttpResponse
+	def hello(request):
+    		return HttpResponse('你好，千锋')  
+#上述设置完，可以在http://127.0.0.1:8080/hello中显示   你好，千锋
+
+二、创建数据库中的表格
+在app文件夹下的models.py中输入：
+from django.db import models
+
+class Student(models.Model):
+		#模型的每个属性都表示为数据库中的一个字段
+		
+    # 定义s_name字段，varchar类型，最长不超过6字符，唯一
+    s_name = models.CharField(max_length=6,unique=True)
+    # 定义s_age字段，int类型
+    s_age = models.IntegerField(default=18)
+    # 定义s_gender字段，int类型
+    s_gender = models.BooleanField(default=1)
+    class Meta:
+        # 定义模型迁移到数据库中的表名
+        db_table = 'student'
+
+
+在day02下的settings下的33行INSTALLED_APPS中添加‘app’(文件夹名称)，激活app,即：
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'app',  #自己添加的文件夹名
+]
+#新建的 app 如果不加到 INSTALL_APPS 中的话, django 就不能自动找到app中的模板文件(app-name/templates/下的文件)和静态文件(app-name/static/中的文件) 
+
+terminal输入python manage.py makemigrations  #给应用生成迁移脚本
+terminal输入python manage.py migrate 就能在mysql中的dj6创建student表格
+
+三、给数据库中表格进行数据操作
+
+from django.shortcuts import render
+from django.http import HttpResponse
+# HttpRequest对象由Django自动创建，HttpResponse对象由程序员创建
+
+from app.models import Student
+def hello(request):
+    return HttpResponse('你好，千锋')
+
+def create_stu(request):
+    # 第一种方式：创建学生
+    # stu = Student()
+    # stu.s_name = "王二狗"
+    # stu.s_age = 20
+    # stu.save()
+    # 第二种方式：
+    # Student.objects.create(s_name='小明')
+    Student.objects.create(s_name='小花')
+    Student.objects.create(s_name='大锤')
+    Student.objects.create(s_name='小锤')
+    Student.objects.create(s_name='温婉')
+    Student.objects.create(s_name='梁德东')
+    Student.objects.create(s_name='刘欢')
+    return HttpResponse("创建成功")
+
+def sel_stu(request):
+    # 实现查询
+    # all()查询所有对象数据
+    stus=Student.objects.all()
+    # filter()过滤,里面的数据不存在，返回空值，比较保险
+    stus = Student.objects.filter(s_name='小明')
+    # first()获取第一个，寻找的数据不存在，返回空值，比较安全
+    # last()获取最后一个
+    stus = Student.objects.filter(s_age=20).first()
+    stus=Student.objects.get(s_age=20)  # get方法里面的数据找不到，程序崩溃，不保险，如果找到两个及以上对象，也会报错。get找到的数据只有一个，才不会出错
+    #查询年龄等于20，性别是女的学生信息
+    # stus.Student.objects.filter(s_age=20).filter(s_gender=0)
+    stus=Student.objects.filter(s_age=20,s_gender=0)  #并且条件，效果和上句一样
+
+    #模糊查询 like '%xxx%' 'x%' '%x'
+    stus =Student.objects.filter(s_name__contains="锤") #类似like '%xxx%'
+    stus = Student.objects.filter(s_name__startswith="小")#startswith endswith
+    #大于 gt/gte 小于 lt/lte
+    stus = Student.objects.filter(s_age__gte=19)
+    #排序 order by()
+    # 升序
+    stus=Student.objects.order_by('id')
+    #降序
+    stus=Student.objects.order_by('-id')
+    #查询不满足条件的数据  exclude()
+    stus=Student.objects.exclude(s_age=18)
+    #计算统计的个数：count(),len()
+    stus_count=stus.count()  #统计个数，效果等同于len()
+    print(stus_count)
+    #values() 值返回为字典
+    stus_values=stus.values()
+    #id=pk(pk是primary key主键的缩写，一般id都是主键)
+    stus=Student.objects.filter(pk=2)
+
+
+
+
+    stu_names=[stu.s_name for stu in stus]
+    print(stu_names)
+    return HttpResponse("查询成功")
+
+
+
+
+
+python中CTRL+Y 删除当行 ctrl+D复制当行
